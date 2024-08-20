@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SpectraTelco Chat</title>
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@100&display=swap');
+    
+    body {
+      margin: 0;
+      padding: 0;
+      background-image: url('st.png'); /* Background image */
+      background-size: cover;
+      background-position: center;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 100;
+      position: relative;
+    }
+
+    .chat-window {
+      width: 350px;
+      height: 450px;
+      background: linear-gradient(180deg, #9eb4c7, #3f6a8e);
+      border-radius: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
+      padding: 20px;
+      transition: all 0.3s ease; /* Smooth transition */
+      margin-top: 80px; /* Lower the widget further */
+    }
+
+    .chat-window img {
+      margin-top: 10px;
+      width: 50px;
+      height: 50px;
+    }
+
+    .chat-window h2 {
+      color: white;
+      font-size: 1.5em;
+      margin-bottom: 30px;
+    }
+
+    .input-container {
+      display: flex;
+      width: 80%;
+      align-items: center;
+      border: 2px solid #0056b3;
+      border-radius: 5px;
+      overflow: hidden;
+      background-color: white;
+      margin-top: auto;
+    }
+
+    .input-box {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      font-size: 1em;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 100;
+      border-right: 1px solid #0056b3;
+      background-color: transparent;
+    }
+
+    .input-box:focus {
+      outline: none;
+    }
+
+    .submit-button {
+      padding: 10px 15px;
+      border: none;
+      background-color: transparent;
+      color: #0056b3;
+      cursor: pointer;
+      font-size: 1.5em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .submit-button:hover {
+      color: #004099;
+    }
+
+    /* Interactive State */
+    .chat-window.active {
+      background: #ffffff;
+      justify-content: flex-start;
+      padding-top: 10px;
+    }
+
+    .answer-container {
+      display: none;
+      flex: 1;
+      color: #3f6a8e;
+      font-size: 1em;
+      padding: 15px;
+      overflow-y: auto;
+      width: 100%;
+      max-height: 350px; /* Set a max height to allow scrolling */
+      box-sizing: border-box;
+    }
+
+    .chat-window.active .answer-container {
+      display: block;
+    }
+
+    .chat-window.active h2,
+    .chat-window.active img {
+      display: none; /* Hide icon and title in the interactive state */
+    }
+
+    .message {
+      margin-bottom: 10px;
+      white-space: pre-wrap; /* This preserves new lines and spaces */
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background-color: #d9534f; /* User message bubble color */
+      color: white;
+      padding: 10px;
+      border-radius: 15px;
+      max-width: 70%;
+      text-align: left; /* Align text to the left */
+    }
+
+    .message.bot {
+      align-self: flex-start;
+      background-color: #f1f1f1;
+      color: #3f6a8e;
+      padding: 15px; /* Add more padding */
+      border-radius: 15px;
+      max-width: 85%; /* Widen the bot message bubble */
+      text-align: left;
+    }
+
+    /* Example bubble on the left side */
+    .example-bubble {
+      position: absolute;
+      left: 20px;
+      top: 40%;
+      background-color: #2c7a7b;
+      color: white;
+      padding: 15px 20px;
+      border-radius: 20px;
+      font-size: 0.9em;
+      max-width: 250px;
+      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+      display: none; /* Hide initially */
+      align-items: center;
+    }
+
+    .example-bubble::before {
+      content: '💡';
+      margin-right: 10px;
+      font-size: 1.2em;
+    }
+
+    /* Example questions on the right side */
+    .example-questions {
+      position: absolute;
+      right: 20px;
+      top: 40%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .example-question-box {
+      background-color: #2c7a7b;
+      color: white;
+      padding: 15px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.9em;
+      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      transition: background-color 0.3s ease;
+    }
+
+    .example-question-box:hover {
+      background-color: #1a5a5b;
+    }
+
+    /* Buttons */
+    .button-container {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px; /* Increased space between buttons and message bubbles */
+    }
+
+    .button-container button {
+      background-color: #0056b3;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      margin: 0 5px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 100;
+    }
+
+    .button-container button:hover {
+      background-color: #004099;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="example-bubble" id="exampleBubble">
+    This is an example of a pre-trained response in watsonx Assistant.
+  </div>
+
+  <div class="chat-window" id="chatWindow">
+    <img src="vaicon.png" alt="VA Icon" id="vaIcon">
+    <h2 id="title">AskSpectra</h2>
+    <div class="answer-container" id="answerContainer">
+      <!-- Answers will be displayed here -->
+    </div>
+    <div class="input-container">
+      <input type="text" id="inputBox" class="input-box" placeholder="Type your question...">
+      <button class="submit-button" id="submitButton">&rsaquo;</button>
+    </div>
+  </div>
+
+  <div class="example-questions">
+    <div class="example-question-box" onclick="submitExampleQuestion('Who are spectra telco?')">
+      Who are spectra telco?
+    </div>
+    <div class="example-question-box" onclick="submitExampleQuestion('I need to report slow Wifi')">
+      I need to report slow Wifi
+    </div>
+    <div class="example-question-box" onclick="submitExampleQuestion('What are spectra telcos values?')">
+      What are spectra telcos values?
+    </div>
+  </div>
+
+  <script>
+    const inputBox = document.querySelector('.input-box');
+    const submitButton = document.querySelector('.submit-button');
+    const answerContainer = document.getElementById('answerContainer');
+    const chatWindow = document.getElementById('chatWindow');
+    const exampleBubble = document.getElementById('exampleBubble'); // Example bubble
+
+    // Watson Assistant Credentials
+    const assistantId = 'b748900a-7836-4041-9e1c-5c0e12d2837b'; // Your Assistant ID
+    const apiKey = 'Nu-B73HY5OY1d21NQFmXRxk9JtTLJpPuYFroz01fs4cR'; // Your API Key
+    const serviceUrl = 'https://api.eu-gb.assistant.watson.cloud.ibm.com/instances/bdc6b290-3b11-4fc5-9d72-cee23ce2e00f'; // Service URL
+    const versionDate = '2023-06-15'; // Version Date
+
+    let currentContext = {}; // Used to manage the conversation context
+
+    inputBox.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        submitQuery();
+      }
+    });
+
+    submitButton.addEventListener('click', submitQuery);
+
+    async function submitQuery() {
+      const userMessage = inputBox.value.trim();
+      if (userMessage) {
+        // Activate the interactive state
+        chatWindow.classList.add('active');
+
+        // Add user's question as a message bubble
+        addMessage(userMessage, 'user');
+
+        // Call Watson Assistant API
+        const response = await callWatsonAssistant(userMessage);
+
+        // Display Watson's response
+        if (response) {
+          handleWatsonResponse(response);
+          // Check if the response should trigger the example bubble
+          if (userMessage.toLowerCase().includes("who are spectra telco") || userMessage.toLowerCase().includes("what does spectra telco do")) {
+            showExampleBubble("This response showcases how watsonx Assistant uses enhanced natural language understanding (NLU) to interpret user intent. With just five training examples of how a user might phrase a question, the assistant can accurately generate pre-trained responses like this, demonstrating its efficiency in understanding and addressing user needs.");
+          } else if (userMessage.toLowerCase().includes("i need to report slow wifi")) {
+            showExampleBubble("watsonx Assistant manages the slow WiFi report through a structured flow that uses conditional logic and actions. The conversation starts with the assistant offering basic troubleshooting steps if the customer agrees. These steps, targeting common WiFi issues, are sequentially presented. Afterward, the assistant checks if the issue is resolved. Depending on the customer's response, the assistant either concludes the interaction positively or escalates the issue by creating a Zendesk ticket. This approach ensures efficient issue resolution by adapting to the customer’s choices and using logical branching to guide the conversation.");
+          } else if (userMessage.toLowerCase().includes("what are spectra telco’s initiatives for waste management") || userMessage.toLowerCase().includes("what are spectra telcos values")) {
+            showExampleBubble("Here, we're enhancing the standard watsonx Assistant with AI-powered conversational search. We're doing this by integrating LLM models from watsonx.ai—in this case, the meta-llama/llama-3-70b-instruct model. Meanwhile, watsonx Discovery acts as our knowledge base, which also brings in advanced semantic capabilities to ensure precise and context-aware responses.");
+          }
+        } else {
+          addMessage("Sorry, I don't have an answer for that. Please try asking something else.", 'bot');
+        }
+
+        // Clear the input box
+        inputBox.value = ''; 
+
+        // Scroll to the bottom of the answer container
+        answerContainer.scrollTop = answerContainer.scrollHeight;
+      }
+    }
+
+    async function callWatsonAssistant(message) {
+      const sessionUrl = `${serviceUrl}/v2/assistants/${assistantId}/sessions?version=${versionDate}`;
+      const messageUrl = `${serviceUrl}/v2/assistants/${assistantId}/message?version=${versionDate}`;
+
+      try {
+        // Create a session if not already existing
+        if (!currentContext.sessionId) {
+          const sessionResponse = await fetch(sessionUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Basic ${btoa('apikey:' + apiKey)}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          const sessionData = await sessionResponse.json();
+          currentContext.sessionId = sessionData.session_id;
+        }
+
+        // Send the user message to Watson Assistant
+        const response = await fetch(messageUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${btoa('apikey:' + apiKey)}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            input: {
+              message_type: 'text',
+              text: message,
+            },
+            session_id: currentContext.sessionId,
+            context: currentContext,
+          }),
+        });
+
+        const responseData = await response.json();
+        currentContext = responseData.context; // Update context with the response context
+        return responseData.output.generic;
+
+      } catch (error) {
+        console.error('Error communicating with Watson Assistant:', error);
+        return null;
+      }
+    }
+
+    function handleWatsonResponse(genericResponses) {
+      genericResponses.forEach(response => {
+        switch(response.response_type) {
+          case 'text':
+            addMessage(response.text, 'bot');
+            break;
+          case 'image':
+            addImage(response.source);
+            break;
+          case 'option':
+            addOptions(response.options);
+            break;
+          case 'video':
+            addVideo(response.source);
+            break;
+          default:
+            console.log('Unhandled response type:', response.response_type);
+        }
+      });
+    }
+
+    function addMessage(text, sender) {
+      const messageDiv = document.createElement('div');
+      messageDiv.classList.add('message', sender);
+      messageDiv.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Add bold formatting
+      answerContainer.appendChild(messageDiv);
+    }
+
+    function addImage(source) {
+      const img = document.createElement('img');
+      img.src = source;
+      img.alt = "Assistant Image";
+      img.style.maxWidth = "100%";
+      answerContainer.appendChild(img);
+    }
+
+    function addOptions(options) {
+      const buttonContainer = document.createElement('div');
+      buttonContainer.classList.add('button-container');
+
+      options.forEach(option => {
+        const button = document.createElement('button');
+        button.textContent = option.label;
+        button.onclick = () => submitQueryWithOption(option.value.input.text);
+        buttonContainer.appendChild(button);
+      });
+
+      answerContainer.appendChild(buttonContainer);
+    }
+
+    function addVideo(source) {
+      const video = document.createElement('video');
+      video.src = source;
+      video.controls = true;
+      video.style.maxWidth = "100%";
+      answerContainer.appendChild(video);
+    }
+
+    function submitQueryWithOption(optionText) {
+      inputBox.value = optionText;
+      submitQuery();
+    }
+
+    function showExampleBubble(message) {
+      exampleBubble.textContent = message;
+      exampleBubble.style.display = 'flex'; // Show the bubble
+    }
+
+    function submitExampleQuestion(question) {
+      inputBox.value = question;
+      submitQuery();
+    }
+  </script>
+
+</body>
+</html>
+
